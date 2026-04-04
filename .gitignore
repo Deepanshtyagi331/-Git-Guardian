@@ -6,3 +6,4 @@ build/
 .qodo/
 .zencoder/
 .zenflow/
+backend/temp/
