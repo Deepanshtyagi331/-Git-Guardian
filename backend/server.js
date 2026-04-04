@@ -11,9 +11,14 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Connect to Database
-connectDB().then(() => {
-  scheduleAutoScans();
-});
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
+  connectDB().then(() => {
+    scheduleAutoScans();
+  });
+} else {
+  // Always connect in serverless but skip intervals
+  connectDB();
+}
 
 // Middleware
 app.use(helmet());
@@ -25,6 +30,11 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/scans', require('./routes/scanRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 
+// Root test route
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'Guardian Protocol Online', timestamp: new Date() });
+});
+
 // Error Handler
 app.use((err, req, res, next) => {
   const statusCode = res.statusCode ? res.statusCode : 500;
@@ -35,4 +45,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+}
+
+module.exports = app;
