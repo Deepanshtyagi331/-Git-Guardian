@@ -31,6 +31,10 @@ app.use('/api/scans', require('./routes/scanRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 
 // Root test route
+app.get('/', (req, res) => {
+  res.send('Backend is running smoothly on Render!');
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Guardian Protocol Online', timestamp: new Date() });
 });
