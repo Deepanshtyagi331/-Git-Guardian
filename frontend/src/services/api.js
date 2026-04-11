@@ -1,6 +1,11 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+// Ensure the baseURL has a trailing slash for proper relative resolution
+let rawBase = import.meta.env.VITE_API_URL || '/api';
+if (!rawBase.endsWith('/')) {
+  rawBase += '/';
+}
+const API_URL = rawBase;
 
 const api = axios.create({
   baseURL: API_URL,
@@ -19,7 +24,7 @@ api.interceptors.request.use(
 );
 
 export const login = async (userData) => {
-  const response = await api.post('/auth/login', userData);
+  const response = await api.post('auth/login', userData);
   if (response.data) {
     localStorage.setItem('user', JSON.stringify(response.data));
   }
@@ -27,7 +32,7 @@ export const login = async (userData) => {
 };
 
 export const register = async (userData) => {
-  const response = await api.post('/auth/register', userData);
+  const response = await api.post('auth/register', userData);
   if (response.data) {
     localStorage.setItem('user', JSON.stringify(response.data));
   }
@@ -39,7 +44,7 @@ export const logout = () => {
 };
 
 export const updateProfile = async (userData) => {
-  const response = await api.put('/auth/profile', userData);
+  const response = await api.put('auth/profile', userData);
   if (response.data) {
     const currentUser = JSON.parse(localStorage.getItem('user'));
     localStorage.setItem('user', JSON.stringify({ ...currentUser, ...response.data }));
@@ -48,44 +53,44 @@ export const updateProfile = async (userData) => {
 };
 
 export const getScans = async () => {
-  const response = await api.get('/scans');
+  const response = await api.get('scans');
   return response.data;
 };
 
 export const createScan = async (scanData) => {
-  const response = await api.post('/scans', scanData);
+  const response = await api.post('scans', scanData);
   return response.data;
 };
 
 export const getScan = async (id) => {
-  const response = await api.get(`/scans/${id}`);
+  const response = await api.get(`scans/${id}`);
   return response.data;
 };
 
 export const cancelScan = async (id) => {
-  const response = await api.post(`/scans/${id}/cancel`);
+  const response = await api.post(`scans/${id}/cancel`);
   return response.data;
 };
 
 export const getGithubRepos = async (username) => {
-  const response = await api.get(`/scans/github-repos/${username}`);
+  const response = await api.get(`scans/github-repos/${username}`);
   return response.data;
 };
 
 // Admin
 export const getSystemStats = async () => {
-  const response = await api.get('/admin/stats');
+  const response = await api.get('admin/stats');
   return response.data;
 };
 
 
 export const getAllUsers = async () => {
-  const response = await api.get('/admin/users');
+  const response = await api.get('admin/users');
   return response.data;
 };
 
 export const getActivityLogs = async () => {
-  const response = await api.get('/admin/activity');
+  const response = await api.get('admin/activity');
   return response.data;
 };
 
