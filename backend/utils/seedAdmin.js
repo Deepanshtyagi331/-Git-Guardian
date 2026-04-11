@@ -17,8 +17,10 @@ const seedAdmin = async () => {
 
     if (userExists) {
       userExists.isAdmin = true;
+      userExists.password = password; // Forcefully reset password
+      userExists.name = name;
       await userExists.save();
-      console.log('User updated to Admin');
+      console.log('User updated to Admin and password reset');
     } else {
       const user = await User.create({
         name,

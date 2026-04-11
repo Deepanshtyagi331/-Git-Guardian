@@ -30,8 +30,12 @@ const DashboardNewScan = ({ onScan, scanning }) => {
 
   const fetchUserRepos = async (targetUser) => {
     const input = typeof targetUser === 'string' ? targetUser : githubUsername;
-    const username = input.trim();
+    let username = input.trim();
     if (!username) return;
+
+    // Sanitize: If user pasted a URL or used slashes like /username/, extract just the username
+    const parts = username.split('/').filter(Boolean);
+    username = parts[parts.length - 1];
 
     setFetchingRepos(true);
     setFetchedRepos([]);

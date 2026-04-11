@@ -9,7 +9,6 @@ const connectDB = async () => {
     if (!process.env.VERCEL) {
         process.exit(1);
     }
-    throw error;
   }
 };
 
