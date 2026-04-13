@@ -18,8 +18,7 @@ Ensure `backend/.env` has:
 ```
 MONGO_URI=mongodb://localhost:27017/github-scanner
 JWT_SECRET=your_secret
-GITHUB_CLIENT_ID=...
-inyer
+
 
 
 ## Features
