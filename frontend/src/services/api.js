@@ -2,6 +2,14 @@ import axios from 'axios';
 
 // Ensure the baseURL has a trailing slash for proper relative resolution
 let rawBase = import.meta.env.VITE_API_URL || '/api';
+
+if (import.meta.env.VITE_API_URL) {
+  // Ensure the URL includes /api if it doesn't already
+  if (!rawBase.endsWith('/api') && !rawBase.endsWith('/api/')) {
+    rawBase = rawBase.replace(/\/$/, '') + '/api';
+  }
+}
+
 if (!rawBase.endsWith('/')) {
   rawBase += '/';
 }
