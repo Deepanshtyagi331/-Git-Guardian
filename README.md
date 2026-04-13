@@ -11,9 +11,7 @@
 2.  **Frontend**
     ```bash
     cd frontend
-    npm install
-    npm run dev
-    ```
+    
 
 ## Environment Variables
 Ensure `backend/.env` has:
