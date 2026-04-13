@@ -1,23 +1,29 @@
 import axios from 'axios';
 
-// Ensure the baseURL has a trailing slash for proper relative resolution
-let rawBase = import.meta.env.VITE_API_URL || '/api';
+// Robust API URL construction
+let baseURL = import.meta.env.VITE_API_URL || '/api';
 
-if (import.meta.env.VITE_API_URL) {
-  // Ensure the URL includes /api if it doesn't already
-  if (!rawBase.endsWith('/api') && !rawBase.endsWith('/api/')) {
-    rawBase = rawBase.replace(/\/$/, '') + '/api';
+// Handle absolute URLs (production)
+if (baseURL.startsWith('http')) {
+  // Clean multiple trailing slashes and normalize
+  baseURL = baseURL.replace(/\/+$/, '');
+  
+  // Ensure the /api path is present
+  if (!baseURL.endsWith('/api')) {
+    baseURL += '/api';
   }
 }
 
-if (!rawBase.endsWith('/')) {
-  rawBase += '/';
+// Ensure it always ends with a single trailing slash for Axios consistency
+if (!baseURL.endsWith('/')) {
+  baseURL += '/';
 }
-const API_URL = rawBase;
+
+console.log('Final API Base URL:', baseURL);
 
 const api = axios.create({
-  baseURL: API_URL,
-  timeout: 10000,
+  baseURL: baseURL,
+  timeout: 15000,
 });
 
 api.interceptors.request.use(
