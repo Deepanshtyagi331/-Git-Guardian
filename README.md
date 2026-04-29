@@ -10,7 +10,7 @@
     n
 2.  **Frontend**
     ```bash
-    cd frontend
+    cd frontend 
     
 
 ## Environment Variables
