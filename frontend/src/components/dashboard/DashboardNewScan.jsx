@@ -158,8 +158,8 @@ const DashboardNewScan = ({ onScan, onBulkScan, scanning }) => {
                     animate={{ opacity: 1, y: 0 }}
                     className="space-y-6 pt-6 border-t border-white/5"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="relative flex-1 group">
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                      <div className="relative flex-1 w-full group">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
                         <input
                           type="text"
@@ -169,7 +169,7 @@ const DashboardNewScan = ({ onScan, onBulkScan, scanning }) => {
                           onChange={(e) => setRepoFilter(e.target.value)}
                         />
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 shrink-0">
                         <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{filteredRepos.length} Repositories</span>
                         {filteredRepos.length > 0 && onBulkScan && (
                           <button
@@ -182,6 +182,7 @@ const DashboardNewScan = ({ onScan, onBulkScan, scanning }) => {
                           </button>
                         )}
                       </div>
+                    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[440px] overflow-y-auto custom-scrollbar pr-2">
                       {filteredRepos.map(repo => (
