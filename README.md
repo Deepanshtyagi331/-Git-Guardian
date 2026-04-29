@@ -8,7 +8,7 @@
     npm install
     cp .env.example .env # (If provided)
     n
-2.  **Frontend**
+2.  **Frontend** 
     ```bash
     cd frontend 
     
