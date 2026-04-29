@@ -1,15 +1,19 @@
 import axios from 'axios';
 
 // Robust API URL construction
-let baseURL = import.meta.env.VITE_API_URL || '/api';
+const rawEnvUrl = import.meta.env.VITE_API_URL;
+console.log('[API Debug] Raw VITE_API_URL from environment:', rawEnvUrl);
+
+let baseURL = rawEnvUrl || '/api';
 
 // Handle absolute URLs (production)
 if (baseURL.startsWith('http')) {
   // Clean multiple trailing slashes and normalize
   baseURL = baseURL.replace(/\/+$/, '');
   
-  // Ensure the /api path is present
-  if (!baseURL.endsWith('/api')) {
+  // Ensure the /api path is present if it's not already there
+  // This handles cases where VITE_API_URL is just the domain
+  if (!baseURL.endsWith('/api') && !baseURL.includes('/api/')) {
     baseURL += '/api';
   }
 }
@@ -19,11 +23,11 @@ if (!baseURL.endsWith('/')) {
   baseURL += '/';
 }
 
-console.log('Final API Base URL:', baseURL);
+console.log('[API Debug] Resolved Final BaseURL:', baseURL);
 
 const api = axios.create({
   baseURL: baseURL,
-  timeout: 15000,
+  timeout: 30000, // Increased timeout for slow production cold starts
 });
 
 api.interceptors.request.use(
@@ -35,6 +39,21 @@ api.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Added interceptor to log failed requests for easier debugging
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('[API Error] Request Failed:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      fullUrl: error.config?.baseURL + error.config?.url,
+      message: error.response?.data?.message || error.message
+    });
+    return Promise.reject(error);
+  }
 );
 
 export const login = async (userData) => {
