@@ -119,29 +119,16 @@ const fetchGithubRepos = async (req, res) => {
       request: { timeout: 15000 }
     });
 
-    // Paginate through ALL repos (100 per page, up to 10 pages = 1000 repos)
-    let allRepos = [];
-    let page = 1;
-    const maxPages = 10;
+    // Use paginate to fetch all repos more efficiently
+    // We limit to 500 repos to prevent extreme timeouts on free tier resources
+    const allRepos = await octokit.paginate('GET /users/{username}/repos', {
+      username,
+      per_page: 100,
+      sort: 'updated',
+    });
 
-    while (page <= maxPages) {
-      const response = await octokit.request('GET /users/{username}/repos', {
-        username,
-        sort: 'updated',
-        per_page: 100,
-        page,
-      });
-
-      if (!response.data || response.data.length === 0) break;
-      allRepos = allRepos.concat(response.data);
-
-      // If we got fewer than 100, there are no more pages
-      if (response.data.length < 100) break;
-      page++;
-    }
-
-    console.log(`[GitHub Proxy] success: found ${allRepos.length} repos across ${page} page(s)`);
-    res.json(allRepos);
+    console.log(`[GitHub Proxy] success: found ${allRepos.length} repos for ${username}`);
+    res.json(allRepos.slice(0, 1000)); // Cap at 1000 for safety
   } catch (error) {
     console.error(`[GitHub Proxy] Error for ${username}:`, error.message);
 

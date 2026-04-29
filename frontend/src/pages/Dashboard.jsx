@@ -38,15 +38,42 @@ const Dashboard = () => {
     }
   };
 
-  const handleScan = async (repoUrl) => {
+  const handleScan = async (repoUrl, skipTabSwitch = false) => {
     setScanning(true);
     try {
       await createScan({ repoUrl });
-      setActiveTab('scans');
-      fetchScans();
+      if (!skipTabSwitch) {
+        setActiveTab('scans');
+        fetchScans();
+      }
     } catch (error) {
       console.error(error);
-      alert('Failed to start scan');
+      if (!skipTabSwitch) alert('Failed to start scan');
+      throw error; // Rethrow for bulk handler
+    } finally {
+      if (!skipTabSwitch) setScanning(false);
+    }
+  };
+
+  const handleBulkScan = async (repoUrls) => {
+    setScanning(true);
+    let successCount = 0;
+    
+    try {
+      for (const url of repoUrls) {
+        try {
+          await handleScan(url, true);
+          successCount++;
+          // Small delay to prevent rate limiting/overload
+          await new Promise(r => setTimeout(r, 500));
+        } catch (err) {
+          console.error(`Bulk Scan failed for ${url}:`, err);
+        }
+      }
+      
+      alert(`Bulk Scan Protocol initiated for ${successCount}/${repoUrls.length} repositories.`);
+      setActiveTab('scans');
+      fetchScans();
     } finally {
       setScanning(false);
     }
@@ -197,7 +224,7 @@ const Dashboard = () => {
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               >
                 {activeTab === 'overview' && <DashboardOverview scans={scans} />}
-                {activeTab === 'new-scan' && <DashboardNewScan onScan={handleScan} scanning={scanning} />}
+                {activeTab === 'new-scan' && <DashboardNewScan onScan={handleScan} onBulkScan={handleBulkScan} scanning={scanning} />}
                 {activeTab === 'auto-scan' && <DashboardAutoScan />}
                 {activeTab === 'auto-history' && <DashboardAutoScanHistory scans={scans} />}
                 {activeTab === 'scans' && <DashboardScans scans={scans} onRefresh={fetchScans} />}

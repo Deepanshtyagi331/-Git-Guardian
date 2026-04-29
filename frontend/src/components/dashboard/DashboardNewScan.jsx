@@ -3,7 +3,7 @@ import { Search, GitBranch, Activity, Plus, Github, Download, Sparkles, AlertCir
 import { motion, AnimatePresence } from 'framer-motion';
 import { getGithubRepos } from '../../services/api';
 
-const DashboardNewScan = ({ onScan, scanning }) => {
+const DashboardNewScan = ({ onScan, onBulkScan, scanning }) => {
   const [repoUrl, setRepoUrl] = useState('');
   const [githubUsername, setGithubUsername] = useState('');
   const [fetchedRepos, setFetchedRepos] = useState([]);
@@ -169,8 +169,19 @@ const DashboardNewScan = ({ onScan, scanning }) => {
                           onChange={(e) => setRepoFilter(e.target.value)}
                         />
                       </div>
-                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{filteredRepos.length} Repositories</span>
-                    </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{filteredRepos.length} Repositories</span>
+                        {filteredRepos.length > 0 && onBulkScan && (
+                          <button
+                            onClick={() => onBulkScan(filteredRepos.map(r => r.html_url))}
+                            disabled={scanning}
+                            className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-widest flex items-center gap-1.5 transition-colors border border-cyan-400/20 px-3 py-1 rounded-lg bg-cyan-400/5 hover:bg-cyan-400/10"
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            Bulk Scan All
+                          </button>
+                        )}
+                      </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[440px] overflow-y-auto custom-scrollbar pr-2">
                       {filteredRepos.map(repo => (

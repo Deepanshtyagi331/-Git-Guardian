@@ -6,3 +6,4 @@ build/
 .zencoder/
 .zenflow/
 backend/temp/
+backend/.env
