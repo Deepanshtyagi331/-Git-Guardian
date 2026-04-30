@@ -116,19 +116,21 @@ const fetchGithubRepos = async (req, res) => {
 
     const octokit = new Octokit({
       auth: isPlaceholder ? undefined : rawAuth,
-      request: { timeout: 15000 }
+      request: { timeout: 20000 }
     });
 
-    // Use paginate to fetch all repos more efficiently
-    // We limit to 500 repos to prevent extreme timeouts on free tier resources
-    const allRepos = await octokit.paginate('GET /users/{username}/repos', {
+    // We fetch the first 100 most recently updated repos. 
+    // This is significantly faster than paginate for users with many repos
+    // and avoids hitting 60s/120s timeouts on free tier hosting.
+    const response = await octokit.request('GET /users/{username}/repos', {
       username,
       per_page: 100,
       sort: 'updated',
     });
 
+    const allRepos = response.data;
     console.log(`[GitHub Proxy] success: found ${allRepos.length} repos for ${username}`);
-    res.json(allRepos.slice(0, 1000)); // Cap at 1000 for safety
+    res.json(allRepos); 
   } catch (error) {
     console.error(`[GitHub Proxy] Error for ${username}:`, error.message);
 

@@ -27,7 +27,7 @@ console.log('[API Debug] Resolved Final BaseURL:', baseURL);
 
 const api = axios.create({
   baseURL: baseURL,
-  timeout: 60000, // Increased to 60s for slow production cold starts and large repo fetches
+  timeout: 120000, // Increased to 120s for slow production cold starts and large repo fetches
 });
 
 api.interceptors.request.use(
