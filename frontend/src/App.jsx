@@ -6,6 +6,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import ScanDetails from './pages/ScanDetails';
 import AdminDashboard from './pages/AdminDashboard';
+import VerifyEmail from './pages/VerifyEmail';
 
 // Simple wrapper to redirect if already logged in
 const PublicRoute = ({ children }) => {
@@ -23,6 +24,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+          <Route path="/verify-email/:token" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedLayout />}>

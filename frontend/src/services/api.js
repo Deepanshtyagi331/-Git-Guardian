@@ -58,7 +58,7 @@ api.interceptors.response.use(
 
 export const login = async (userData) => {
   const response = await api.post('auth/login', userData);
-  if (response.data) {
+  if (response.data && !response.data.mfaRequired) {
     localStorage.setItem('user', JSON.stringify(response.data));
   }
   return response.data;
@@ -66,9 +66,7 @@ export const login = async (userData) => {
 
 export const register = async (userData) => {
   const response = await api.post('auth/register', userData);
-  if (response.data) {
-    localStorage.setItem('user', JSON.stringify(response.data));
-  }
+  // Email verification required, do not log in automatically
   return response.data;
 };
 
@@ -82,6 +80,35 @@ export const updateProfile = async (userData) => {
     const currentUser = JSON.parse(localStorage.getItem('user'));
     localStorage.setItem('user', JSON.stringify({ ...currentUser, ...response.data }));
   }
+  return response.data;
+};
+
+// --- Authentication & MFA ---
+export const verifyEmail = async (token) => {
+  const response = await api.get(`auth/verify-email/${token}`);
+  return response.data;
+};
+
+export const verifyMfaLogin = async (data) => {
+  const response = await api.post('auth/mfa/verify', data);
+  if (response.data) {
+    localStorage.setItem('user', JSON.stringify(response.data));
+  }
+  return response.data;
+};
+
+export const setupMfa = async () => {
+  const response = await api.post('auth/mfa/setup');
+  return response.data;
+};
+
+export const enableMfa = async (token) => {
+  const response = await api.post('auth/mfa/enable', { token });
+  return response.data;
+};
+
+export const disableMfa = async (token) => {
+  const response = await api.post('auth/mfa/disable', { token });
   return response.data;
 };
 

@@ -1,23 +1,46 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, Lock, ArrowRight, Activity, Zap, Mail, Fingerprint } from 'lucide-react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { ShieldCheck, Lock, ArrowRight, Activity, Zap, Mail, Fingerprint, Key } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Login = () => {
+  const location = useLocation();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const [requiresMfa, setRequiresMfa] = useState(false);
+  const [mfaTempToken, setMfaTempToken] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
+  
+  const { login, verifyMfaLogin } = useAuth();
   const navigate = useNavigate();
+
+  // Clear success message when user starts typing
+  useEffect(() => {
+    if (successMessage && (formData.email || formData.password)) {
+      setSuccessMessage('');
+    }
+  }, [formData.email, formData.password, successMessage]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      await login(formData);
-      navigate('/');
+      if (requiresMfa) {
+        await verifyMfaLogin({ token: mfaCode, tempToken: mfaTempToken });
+        navigate('/');
+      } else {
+        const response = await login(formData);
+        if (response.mfaRequired) {
+          setRequiresMfa(true);
+          setMfaTempToken(response.tempToken);
+        } else {
+          navigate('/');
+        }
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Authentication protocol failed');
     } finally {
@@ -84,42 +107,75 @@ const Login = () => {
                   {error}
                 </motion.div>
               )}
+              {successMessage && !error && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-2xl text-xs font-bold flex items-center gap-3"
+                >
+                  <ShieldCheck size={16} />
+                  {successMessage}
+                </motion.div>
+              )}
             </AnimatePresence>
 
             <div className="space-y-4">
-              <div className="group">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 mb-2 block group-focus-within:text-cyan-400 transition-colors">Digital Identity</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-cyan-500 transition-colors">
-                    <Mail size={18} />
+              {!requiresMfa ? (
+                <>
+                  <div className="group">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 mb-2 block group-focus-within:text-cyan-400 transition-colors">Digital Identity</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-cyan-500 transition-colors">
+                        <Mail size={18} />
+                      </div>
+                      <input
+                        type="email"
+                        required
+                        className="block w-full pl-12 pr-4 py-4 border border-white/5 rounded-2xl bg-slate-950/50 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all duration-300 text-sm font-medium"
+                        placeholder="operator@guardian.core"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      />
+                    </div>
                   </div>
-                  <input
-                    type="email"
-                    required
-                    className="block w-full pl-12 pr-4 py-4 border border-white/5 rounded-2xl bg-slate-950/50 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all duration-300 text-sm font-medium"
-                    placeholder="operator@guardian.core"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
-              </div>
 
-              <div className="group">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 mb-2 block group-focus-within:text-indigo-400 transition-colors">Access Logic</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-500 transition-colors">
-                    <Lock size={18} />
+                  <div className="group">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 mb-2 block group-focus-within:text-indigo-400 transition-colors">Access Logic</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-500 transition-colors">
+                        <Lock size={18} />
+                      </div>
+                      <input
+                        type="password"
+                        required
+                        className="block w-full pl-12 pr-4 py-4 border border-white/5 rounded-2xl bg-slate-950/50 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all duration-300 text-sm font-medium"
+                        placeholder="••••••••••••"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      />
+                    </div>
                   </div>
-                  <input
-                    type="password"
-                    required
-                    className="block w-full pl-12 pr-4 py-4 border border-white/5 rounded-2xl bg-slate-950/50 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all duration-300 text-sm font-medium"
-                    placeholder="••••••••••••"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  />
+                </>
+              ) : (
+                <div className="group">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 mb-2 block group-focus-within:text-cyan-400 transition-colors">MFA Token Code</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-cyan-500 transition-colors">
+                      <Key size={18} />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      className="block w-full pl-12 pr-4 py-4 border border-white/5 rounded-2xl bg-slate-950/50 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all duration-300 text-sm font-medium tracking-widest"
+                      placeholder="123456"
+                      value={mfaCode}
+                      onChange={(e) => setMfaCode(e.target.value)}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2 ml-1">Enter the 6-digit code from your authenticator app.</p>
                 </div>
-              </div>
+              )}
             </div>
 
             <div>

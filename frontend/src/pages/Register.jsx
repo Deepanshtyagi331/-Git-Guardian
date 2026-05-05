@@ -16,8 +16,8 @@ const Register = () => {
     setLoading(true);
     setError('');
     try {
-      await register(formData);
-      navigate('/');
+      const data = await register(formData);
+      navigate('/login', { state: { message: data?.message || 'Registration successful. Check your email to verify.' } });
     } catch (err) {
       setError(err.response?.data?.message || 'Identity establishment failed');
     } finally {

@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useContext } from 'react';
-import { login as apiLogin, register as apiRegister, logout as apiLogout } from '../services/api';
+import { login as apiLogin, register as apiRegister, logout as apiLogout, verifyMfaLogin as apiVerifyMfaLogin } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -17,12 +17,21 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (userData) => {
     const data = await apiLogin(userData);
+    if (!data.mfaRequired) {
+      setUser(data);
+    }
+    return data;
+  };
+
+  const verifyMfaLogin = async (mfaData) => {
+    const data = await apiVerifyMfaLogin(mfaData);
     setUser(data);
+    return data;
   };
 
   const register = async (userData) => {
     const data = await apiRegister(userData);
-    setUser(data);
+    return data;
   };
 
   const logout = () => {
@@ -35,7 +44,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, updateUser, verifyMfaLogin, loading }}>
       {children}
     </AuthContext.Provider>
   );

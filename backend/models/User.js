@@ -12,6 +12,10 @@ const userSchema = mongoose.Schema(
     autoScanEnabled: { type: Boolean, default: false },
     autoScanInterval: { type: Number, default: 7 }, // default 7 days
     lastAutoScan: { type: Date },
+    isEmailVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String },
+    mfaEnabled: { type: Boolean, default: false },
+    mfaSecret: { type: String },
   },
   { timestamps: true }
 );

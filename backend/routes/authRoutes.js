@@ -1,12 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser, getMe, updateUserProfile } = require('../controllers/authController');
+const { registerUser, loginUser, getMe, updateUserProfile, verifyEmail, setupMfa, enableMfa, disableMfa, verifyMfaLogin } = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.get('/me', protect, getMe);
 router.put('/profile', protect, updateUserProfile);
+
+// Verification and MFA
+router.get('/verify-email/:token', verifyEmail);
+router.post('/mfa/setup', protect, setupMfa);
+router.post('/mfa/enable', protect, enableMfa);
+router.post('/mfa/disable', protect, disableMfa);
+router.post('/mfa/verify', verifyMfaLogin);
 
 // TEMPORARY: Emergency Admin Promotion
 // Use this only if you cannot access the shell or DB directly.
