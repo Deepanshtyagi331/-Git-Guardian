@@ -4,25 +4,29 @@ const sendEmail = async ({ to, subject, html, text }) => {
   let transporter;
 
   if (process.env.SMTP_HOST && process.env.SMTP_HOST.includes('gmail')) {
-    // Explicit Gmail configuration with Port 465 (Secure)
+    // Explicit Gmail configuration with Port 587 (TLS)
     transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
+      port: 587,
+      secure: false, // Use TLS
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 10000,
     });
   } else if (process.env.SMTP_HOST) {
     // Generic SMTP
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT || 587,
+      secure: process.env.SMTP_PORT == 465,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      connectionTimeout: 10000,
     });
   } else {
     // Fallback for local development
