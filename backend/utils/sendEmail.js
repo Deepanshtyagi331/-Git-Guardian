@@ -1,7 +1,7 @@
 const nodemailer = require('nodemailer');
 const dns = require('dns');
 
-// Force Node.js to prefer IPv4 over IPv6 to avoid ENETUNREACH on Render
+// Force Node.js to prefer IPv4 over IPv6 globally to avoid ENETUNREACH on Render
 if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder('ipv4first');
 }
@@ -13,40 +13,45 @@ const sendEmail = async ({ to, subject, html, text }) => {
   console.log(`[Email Debug] To: ${to}`);
   console.log(`[Email Debug] Using SMTP_USER: ${process.env.SMTP_USER}`);
 
-  // Use manual config with aggressive IPv4 enforcement for Render
   if (process.env.SMTP_SERVICE === 'gmail' || (process.env.SMTP_HOST && process.env.SMTP_HOST.includes('gmail'))) {
-    console.log('[Email Debug] Config: Gmail FINAL FIX (Port 465)');
+    console.log('[Email Debug] Config: Gmail (Port 465, secure, family:4)');
+
     transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,
-      secure: true,
+      secure: true,          // Implicit SSL — required for port 465
+      family: 4,             // *** Force IPv4 — prevents ENETUNREACH on Render ***
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      // This is the strongest way to force IPv4 in Node.js
-      lookup: (hostname, options, callback) => {
-        dns.lookup(hostname, { family: 4 }, callback);
-      },
-      connectionTimeout: 30000,
+      connectionTimeout: 10000,   // 10s to establish TCP connection
+      greetingTimeout:   10000,   // 10s to receive the SMTP greeting
+      socketTimeout:     10000,   // 10s of inactivity before giving up
     });
+
   } else if (process.env.SMTP_HOST) {
     console.log(`[Email Debug] Config: Generic SMTP (${process.env.SMTP_HOST}:${process.env.SMTP_PORT || 587})`);
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT || 587,
       secure: process.env.SMTP_PORT == 465,
+      family: 4,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
       connectionTimeout: 10000,
+      greetingTimeout:   10000,
+      socketTimeout:     10000,
     });
+
   } else if (process.env.NODE_ENV === 'production') {
     console.error('[Email Error] CRITICAL: SMTP is not configured in production!');
     return;
+
   } else {
-    console.log('[Email Debug] Config: Ethereal Fallback');
+    console.log('[Email Debug] Config: Ethereal Fallback (development only)');
     const testAccount = await nodemailer.createTestAccount();
     transporter = nodemailer.createTransport({
       host: 'smtp.ethereal.email',
@@ -58,8 +63,6 @@ const sendEmail = async ({ to, subject, html, text }) => {
       },
     });
   }
-
-  // Skipping explicit verification to avoid timeouts; sendMail will report issues
 
   const mailOptions = {
     from: process.env.FROM_EMAIL || `"Git Guardian" <${process.env.SMTP_USER}>`,
@@ -76,17 +79,15 @@ const sendEmail = async ({ to, subject, html, text }) => {
   } catch (error) {
     console.error('-----------------------------------------');
     console.error('[Email Error] Failed to send email.');
-    console.error('[Code]', error.code);
+    console.error('[Code]',     error.code);
     console.error('[Response]', error.response);
-    console.error('[Reason]', error.message);
-    
-    if (error.message.includes('Invalid login') || error.code === 'EAUTH') {
-      console.error('[Action Required] Gmail App Password rejected. Check if 2FA is on and password is correct.');
+    console.error('[Reason]',   error.message);
+    if (error.code === 'EAUTH' || error.message.includes('Invalid login')) {
+      console.error('[Action Required] Gmail App Password rejected. Ensure 2FA is enabled and use a 16-char App Password.');
     }
     console.error('-----------------------------------------');
-    throw error; // Rethrow to let the controller know it failed
+    throw error;
   }
 };
 
 module.exports = sendEmail;
-
