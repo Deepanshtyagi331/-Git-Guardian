@@ -57,11 +57,18 @@ const registerUser = async (req, res) => {
       <p>Or copy and paste this link: <br> ${verifyUrl}</p>
     `;
 
-    await sendEmail({
-      to: user.email,
-      subject: 'Verify your Git Guardian Account',
-      html: message,
-    });
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Verify your Git Guardian Account',
+        html: message,
+      });
+      console.log(`[Registration] Verification email sent to ${user.email}`);
+    } catch (emailError) {
+      console.error(`[Registration Error] Failed to send verification email to ${user.email}`);
+      console.error(`[Reason] ${emailError.message}`);
+      // We continue here so the user is still created, but they might need a resend option later
+    }
     
     // Explicitly logging it to the console as per requirements to test without email easily
     console.log('\n' + '='.repeat(60));

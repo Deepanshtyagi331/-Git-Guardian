@@ -5,23 +5,19 @@ const sendEmail = async ({ to, subject, html, text }) => {
 
   console.log(`[Email Debug] Starting sendEmail process...`);
   console.log(`[Email Debug] To: ${to}`);
-  console.log(`[Email Debug] Using User: ${process.env.SMTP_USER}`);
+  console.log(`[Email Debug] Using SMTP_USER: ${process.env.SMTP_USER}`);
 
+  // Use 'service: gmail' for better reliability with Gmail
   if (process.env.SMTP_SERVICE === 'gmail' || (process.env.SMTP_HOST && process.env.SMTP_HOST.includes('gmail'))) {
-    console.log('[Email Debug] Config: Gmail (Port 465, Secure)');
+    console.log('[Email Debug] Config: Gmail Service Shortcut');
     transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
+      service: 'gmail',
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
       connectionTimeout: 10000,
       greetingTimeout: 10000,
-      tls: {
-        rejectUnauthorized: false
-      }
     });
   } else if (process.env.SMTP_HOST) {
     console.log(`[Email Debug] Config: Generic SMTP (${process.env.SMTP_HOST}:${process.env.SMTP_PORT || 587})`);
@@ -60,7 +56,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
   } catch (verifyError) {
     console.error('[Email Error] SMTP Connection Verification Failed!');
     console.error('[Reason]', verifyError.message);
-    // Don't return here, attempt to send anyway but we'll know where it failed
+    // Continue anyway to see the sendMail error
   }
 
   const mailOptions = {
@@ -74,16 +70,21 @@ const sendEmail = async ({ to, subject, html, text }) => {
   try {
     const info = await transporter.sendMail(mailOptions);
     console.log(`[Email] Success! Mail sent to ${to}. ID: ${info.messageId}`);
+    return info;
   } catch (error) {
     console.error('-----------------------------------------');
     console.error('[Email Error] Failed to send email.');
     console.error('[Code]', error.code);
+    console.error('[Response]', error.response);
     console.error('[Reason]', error.message);
+    
     if (error.message.includes('Invalid login') || error.code === 'EAUTH') {
-      console.error('[Action Required] Your Gmail App Password is likely incorrect.');
+      console.error('[Action Required] Gmail App Password rejected. Check if 2FA is on and password is correct.');
     }
     console.error('-----------------------------------------');
+    throw error; // Rethrow to let the controller know it failed
   }
 };
 
 module.exports = sendEmail;
+
