@@ -1,4 +1,4 @@
-  # GitHub Security Scanner
+   # GitHub Security Scanner
 
 ## Setup
 
