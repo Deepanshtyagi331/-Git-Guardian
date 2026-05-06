@@ -12,7 +12,7 @@
     ```bash
     cd frontend 
     
-
+ 
 ## Environment Variables
 Ensure `backend/.env` has:
 ```
