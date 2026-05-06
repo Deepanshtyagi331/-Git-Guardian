@@ -24,7 +24,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-          <Route path="/verify-email/:token" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedLayout />}>

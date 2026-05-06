@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { ShieldCheck, Lock, ArrowRight, Activity, Zap, Mail, Fingerprint, Key } from 'lucide-react';
+import { ShieldCheck, Lock, ArrowRight, Activity, Zap, Mail, Fingerprint } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Login = () => {
@@ -10,11 +10,8 @@ const Login = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
   const [loading, setLoading] = useState(false);
-  const [requiresMfa, setRequiresMfa] = useState(false);
-  const [mfaTempToken, setMfaTempToken] = useState('');
-  const [mfaCode, setMfaCode] = useState('');
   
-  const { login, verifyMfaLogin } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   // Clear success message when user starts typing
@@ -29,20 +26,10 @@ const Login = () => {
     setLoading(true);
     setError('');
     try {
-      if (requiresMfa) {
-        await verifyMfaLogin({ token: mfaCode, tempToken: mfaTempToken });
-        navigate('/');
-      } else {
-        const response = await login(formData);
-        if (response.mfaRequired) {
-          setRequiresMfa(true);
-          setMfaTempToken(response.tempToken);
-        } else {
-          navigate('/');
-        }
-      }
+      await login(formData);
+      navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Authentication protocol failed');
+      setError(err.message || 'Authentication protocol failed');
     } finally {
       setLoading(false);
     }
@@ -121,8 +108,6 @@ const Login = () => {
             </AnimatePresence>
 
             <div className="space-y-4">
-              {!requiresMfa ? (
-                <>
                   <div className="group">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 mb-2 block group-focus-within:text-cyan-400 transition-colors">Digital Identity</label>
                     <div className="relative">
@@ -156,26 +141,6 @@ const Login = () => {
                       />
                     </div>
                   </div>
-                </>
-              ) : (
-                <div className="group">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 mb-2 block group-focus-within:text-cyan-400 transition-colors">MFA Token Code</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-cyan-500 transition-colors">
-                      <Key size={18} />
-                    </div>
-                    <input
-                      type="text"
-                      required
-                      className="block w-full pl-12 pr-4 py-4 border border-white/5 rounded-2xl bg-slate-950/50 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all duration-300 text-sm font-medium tracking-widest"
-                      placeholder="123456"
-                      value={mfaCode}
-                      onChange={(e) => setMfaCode(e.target.value)}
-                    />
-                  </div>
-                  <p className="text-xs text-slate-500 mt-2 ml-1">Enter the 6-digit code from your authenticator app.</p>
-                </div>
-              )}
             </div>
 
             <div>

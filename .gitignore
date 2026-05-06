@@ -7,3 +7,4 @@ build/
 .zenflow/
 backend/temp/
 backend/.env
+frontend/.env

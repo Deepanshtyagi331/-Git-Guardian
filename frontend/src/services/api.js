@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { supabase } from './supabase';
 
 // Robust API URL construction
 const rawEnvUrl = import.meta.env.VITE_API_URL;
@@ -8,17 +9,12 @@ let baseURL = rawEnvUrl || '/api';
 
 // Handle absolute URLs (production)
 if (baseURL.startsWith('http')) {
-  // Clean multiple trailing slashes and normalize
   baseURL = baseURL.replace(/\/+$/, '');
-  
-  // Ensure the /api path is present if it's not already there
-  // This handles cases where VITE_API_URL is just the domain
   if (!baseURL.endsWith('/api') && !baseURL.includes('/api/')) {
     baseURL += '/api';
   }
 }
 
-// Ensure it always ends with a single trailing slash for Axios consistency
 if (!baseURL.endsWith('/')) {
   baseURL += '/';
 }
@@ -26,22 +22,23 @@ if (!baseURL.endsWith('/')) {
 console.log('[API Debug] Resolved Final BaseURL:', baseURL);
 
 const api = axios.create({
-  baseURL: baseURL,
-  timeout: 120000, // Increased to 120s for slow production cold starts and large repo fetches
+  baseURL,
+  timeout: 120000,
 });
 
+// Attach Supabase session token to every request
 api.interceptors.request.use(
-  (config) => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (user && user.token) {
-      config.headers.Authorization = `Bearer ${user.token}`;
+  async (config) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      config.headers.Authorization = `Bearer ${session.access_token}`;
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Added interceptor to log failed requests for easier debugging
+// Log failed responses for easier debugging
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -50,50 +47,53 @@ api.interceptors.response.use(
       method: error.config?.method,
       status: error.response?.status,
       fullUrl: error.config?.baseURL + error.config?.url,
-      message: error.response?.data?.message || error.message
+      message: error.response?.data?.message || error.message,
     });
     return Promise.reject(error);
   }
 );
 
-export const login = async (userData) => {
-  const response = await api.post('auth/login', userData);
-  if (response.data && !response.data.mfaRequired) {
-    localStorage.setItem('user', JSON.stringify(response.data));
-  }
-  return response.data;
+// ── Auth (delegated to Supabase) ──────────────────────────────────────────────
+
+export const login = async ({ email, password }) => {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw new Error(error.message);
+  return data; // { user, session }
 };
 
-export const register = async (userData) => {
-  const response = await api.post('auth/register', userData);
-  // Email verification required, do not log in automatically
-  return response.data;
+export const register = async ({ name, email, password }) => {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { name },
+      emailRedirectTo: `${window.location.origin}/verify-email`,
+    },
+  });
+  if (error) throw new Error(error.message);
+  return data;
 };
 
-export const logout = () => {
-  localStorage.removeItem('user');
+export const logout = async () => {
+  await supabase.auth.signOut();
 };
+
+// ── Profile ───────────────────────────────────────────────────────────────────
 
 export const updateProfile = async (userData) => {
   const response = await api.put('auth/profile', userData);
-  if (response.data) {
-    const currentUser = JSON.parse(localStorage.getItem('user'));
-    localStorage.setItem('user', JSON.stringify({ ...currentUser, ...response.data }));
-  }
   return response.data;
 };
 
-// --- Authentication & MFA ---
-export const verifyEmail = async (token) => {
-  const response = await api.get(`auth/verify-email/${token}`);
+export const getMe = async () => {
+  const response = await api.get('auth/me');
   return response.data;
 };
+
+// ── MFA ───────────────────────────────────────────────────────────────────────
 
 export const verifyMfaLogin = async (data) => {
   const response = await api.post('auth/mfa/verify', data);
-  if (response.data) {
-    localStorage.setItem('user', JSON.stringify(response.data));
-  }
   return response.data;
 };
 
@@ -111,6 +111,8 @@ export const disableMfa = async (token) => {
   const response = await api.post('auth/mfa/disable', { token });
   return response.data;
 };
+
+// ── Scans ─────────────────────────────────────────────────────────────────────
 
 export const getScans = async () => {
   const response = await api.get('scans');
@@ -137,12 +139,12 @@ export const getGithubRepos = async (username) => {
   return response.data;
 };
 
-// Admin
+// ── Admin ─────────────────────────────────────────────────────────────────────
+
 export const getSystemStats = async () => {
   const response = await api.get('admin/stats');
   return response.data;
 };
-
 
 export const getAllUsers = async () => {
   const response = await api.get('admin/users');

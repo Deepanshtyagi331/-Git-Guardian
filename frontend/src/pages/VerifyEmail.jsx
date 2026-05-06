@@ -1,33 +1,47 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { verifyEmail } from '../services/api';
+import { useNavigate, Link } from 'react-router-dom';
+import { supabase } from '../services/supabase';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Activity, ArrowRight } from 'lucide-react';
 
+/**
+ * VerifyEmail – handles the Supabase email confirmation redirect.
+ *
+ * When a user clicks the verification link in their email, Supabase redirects
+ * them to /verify-email with hash parameters containing the access token.
+ * The Supabase JS client picks those up automatically on page load and
+ * confirms the session.
+ */
 const VerifyEmail = () => {
-  const { token } = useParams();
   const [status, setStatus] = useState('verifying');
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    const verify = async () => {
-      try {
-        const res = await verifyEmail(token);
-        setStatus('success');
-        setMessage(res.message || 'Email successfully verified.');
-        setTimeout(() => {
-          navigate('/login', { state: { message: 'Verification complete. You may now log in.' } });
-        }, 3000);
-      } catch (err) {
-        setStatus('error');
-        setMessage(err.response?.data?.message || 'Verification failed. Token may be invalid or expired.');
+    // Listen for the auth event Supabase fires after processing the hash params
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          setStatus('success');
+          setMessage('Email successfully verified. You are now logged in.');
+          setTimeout(() => navigate('/'), 2500);
+        }
       }
+    );
+
+    // Fallback: if no event fires within 5s, something went wrong
+    const timeout = setTimeout(() => {
+      if (status === 'verifying') {
+        setStatus('error');
+        setMessage('Verification timed out. The link may be invalid or expired.');
+      }
+    }, 5000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
     };
-    if (token) {
-      verify();
-    }
-  }, [token, navigate]);
+  }, [navigate, status]);
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center py-12 px-4 relative overflow-hidden font-sans">
@@ -51,7 +65,7 @@ const VerifyEmail = () => {
             <ShieldCheck className="w-16 h-16 text-emerald-400 mx-auto mb-6" />
             <h2 className="text-2xl font-black text-white mb-2 uppercase tracking-tight">Identity Verified</h2>
             <p className="text-slate-400 text-sm mb-8">{message}</p>
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Redirecting to Access Control...</p>
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Redirecting to Command Center...</p>
           </div>
         )}
         {status === 'error' && (

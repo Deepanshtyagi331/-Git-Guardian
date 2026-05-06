@@ -16,10 +16,10 @@ const Register = () => {
     setLoading(true);
     setError('');
     try {
-      const data = await register(formData);
-      navigate('/login', { state: { message: data?.message || 'Registration successful. Check your email to verify.' } });
+      await register(formData);
+      navigate('/login', { state: { message: 'Registration successful. Check your email to verify your account.' } });
     } catch (err) {
-      setError(err.response?.data?.message || 'Identity establishment failed');
+      setError(err.message || 'Identity establishment failed');
     } finally {
       setLoading(false);
     }
