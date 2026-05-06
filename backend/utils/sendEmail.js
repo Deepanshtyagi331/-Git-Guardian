@@ -7,17 +7,22 @@ const sendEmail = async ({ to, subject, html, text }) => {
   console.log(`[Email Debug] To: ${to}`);
   console.log(`[Email Debug] Using SMTP_USER: ${process.env.SMTP_USER}`);
 
-  // Use 'service: gmail' for better reliability with Gmail
+  // Use manual config for Gmail to avoid Render connection timeouts
   if (process.env.SMTP_SERVICE === 'gmail' || (process.env.SMTP_HOST && process.env.SMTP_HOST.includes('gmail'))) {
-    console.log('[Email Debug] Config: Gmail Service Shortcut');
+    console.log('[Email Debug] Config: Gmail Manual (Port 587, STARTTLS)');
     transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // Use STARTTLS
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
+      tls: {
+        rejectUnauthorized: false, // Helps with cloud connection issues
+        ciphers: 'SSLv3'
+      },
+      connectionTimeout: 20000, // Increase to 20s
     });
   } else if (process.env.SMTP_HOST) {
     console.log(`[Email Debug] Config: Generic SMTP (${process.env.SMTP_HOST}:${process.env.SMTP_PORT || 587})`);
@@ -48,16 +53,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
     });
   }
 
-  // Verify connection configuration
-  try {
-    console.log('[Email Debug] Verifying SMTP connection...');
-    await transporter.verify();
-    console.log('[Email Debug] SMTP Connection verified successfully.');
-  } catch (verifyError) {
-    console.error('[Email Error] SMTP Connection Verification Failed!');
-    console.error('[Reason]', verifyError.message);
-    // Continue anyway to see the sendMail error
-  }
+  // Skipping explicit verification to avoid timeouts; sendMail will report issues
 
   const mailOptions = {
     from: process.env.FROM_EMAIL || `"Git Guardian" <${process.env.SMTP_USER}>`,
