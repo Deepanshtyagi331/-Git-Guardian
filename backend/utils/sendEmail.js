@@ -13,19 +13,22 @@ const sendEmail = async ({ to, subject, html, text }) => {
   console.log(`[Email Debug] To: ${to}`);
   console.log(`[Email Debug] Using SMTP_USER: ${process.env.SMTP_USER}`);
 
-  // Use manual config for Gmail to avoid Render connection timeouts
+  // Use manual config with aggressive IPv4 enforcement for Render
   if (process.env.SMTP_SERVICE === 'gmail' || (process.env.SMTP_HOST && process.env.SMTP_HOST.includes('gmail'))) {
-    console.log('[Email Debug] Config: Gmail Manual (Port 587, STARTTLS)');
+    console.log('[Email Debug] Config: Gmail FINAL FIX (Port 465)');
     transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,
-      secure: true,  // Use Implicit SSL
-      family: 4,
+      secure: true,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      connectionTimeout: 20000,
+      // This is the strongest way to force IPv4 in Node.js
+      lookup: (hostname, options, callback) => {
+        dns.lookup(hostname, { family: 4 }, callback);
+      },
+      connectionTimeout: 30000,
     });
   } else if (process.env.SMTP_HOST) {
     console.log(`[Email Debug] Config: Generic SMTP (${process.env.SMTP_HOST}:${process.env.SMTP_PORT || 587})`);
