@@ -18,16 +18,12 @@ const sendEmail = async ({ to, subject, html, text }) => {
     console.log('[Email Debug] Config: Gmail Manual (Port 587, STARTTLS)');
     transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 587,
-      secure: false, // Use STARTTLS
-      family: 4,     // Force IPv4 to avoid ENETUNREACH issues on Render
+      port: 465,
+      secure: true,  // Use Implicit SSL
+      family: 4,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
-      },
-      tls: {
-        rejectUnauthorized: false,
-        ciphers: 'SSLv3'
       },
       connectionTimeout: 20000,
     });
