@@ -45,6 +45,9 @@ const registerUser = async (req, res) => {
     });
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    if (!process.env.FRONTEND_URL && process.env.NODE_ENV === 'production') {
+      console.warn('[Warning] FRONTEND_URL is not set in production. Verification links will default to localhost.');
+    }
     const verifyUrl = `${frontendUrl}/verify-email/${emailVerificationToken}`;
 
     const message = `

@@ -8,9 +8,9 @@ dotenv.config();
 const seedAdmin = async () => {
   await connectDB();
 
-  const email = 'admin@example.com';
-  const password = 'adminpassword';
-  const name = 'Admin User';
+  const email = '[EMAIL_ADDRESS]'
+  const password = '[PASSWORD]'
+  const name = 'Deepansh Tyagi'
 
   try {
     const userExists = await User.findOne({ email });

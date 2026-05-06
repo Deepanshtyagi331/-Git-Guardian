@@ -3,18 +3,14 @@ const nodemailer = require('nodemailer');
 const sendEmail = async ({ to, subject, html, text }) => {
   let transporter;
 
-  if (process.env.SMTP_HOST && process.env.SMTP_HOST.includes('gmail')) {
-    // Explicit Gmail configuration with Port 587 (TLS)
+  if (process.env.SMTP_SERVICE === 'gmail' || (process.env.SMTP_HOST && process.env.SMTP_HOST.includes('gmail'))) {
+    // Optimized Gmail configuration
     transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false, // Use TLS
+      service: 'gmail',
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      connectionTimeout: 10000, // 10 seconds
-      greetingTimeout: 10000,
     });
   } else if (process.env.SMTP_HOST) {
     // Generic SMTP
@@ -28,8 +24,12 @@ const sendEmail = async ({ to, subject, html, text }) => {
       },
       connectionTimeout: 10000,
     });
+  } else if (process.env.NODE_ENV === 'production') {
+    console.error('[Email Error] SMTP is not configured in production! Email will not be sent.');
+    return; // Don't even try Ethereal in production
   } else {
     // Fallback for local development
+    console.log('[Email] No SMTP configured, falling back to Ethereal test account...');
     const testAccount = await nodemailer.createTestAccount();
     transporter = nodemailer.createTransport({
       host: 'smtp.ethereal.email',
@@ -43,7 +43,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
   }
 
   const mailOptions = {
-    from: process.env.FROM_EMAIL || '"Git Guardian" <[tyagideepansh26@gmail.com]>',
+    from: process.env.FROM_EMAIL || '"Git Guardian" <tyagideepansh26@gmail.com>',
     to,
     subject,
     html,
@@ -55,8 +55,11 @@ const sendEmail = async ({ to, subject, html, text }) => {
     console.log(`[Email] Success! Mail sent to ${to}`);
   } catch (error) {
     console.error('-----------------------------------------');
-    console.error('[Email Error] Google rejected the login.');
+    console.error('[Email Error] Failed to send email.');
     console.error('[Reason]', error.message);
+    if (error.message.includes('Invalid login')) {
+      console.error('[Action Required] Check if SMTP_USER and SMTP_PASS (App Password) are correct.');
+    }
     console.error('-----------------------------------------');
   }
 };
