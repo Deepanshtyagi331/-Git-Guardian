@@ -14,15 +14,16 @@ const sendEmail = async ({ to, subject, html, text }) => {
       host: 'smtp.gmail.com',
       port: 587,
       secure: false, // Use STARTTLS
+      family: 4,     // Force IPv4 to avoid ENETUNREACH issues on Render
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
       tls: {
-        rejectUnauthorized: false, // Helps with cloud connection issues
+        rejectUnauthorized: false,
         ciphers: 'SSLv3'
       },
-      connectionTimeout: 20000, // Increase to 20s
+      connectionTimeout: 20000,
     });
   } else if (process.env.SMTP_HOST) {
     console.log(`[Email Debug] Config: Generic SMTP (${process.env.SMTP_HOST}:${process.env.SMTP_PORT || 587})`);
