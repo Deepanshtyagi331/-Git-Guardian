@@ -1,4 +1,10 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+
+// Force Node.js to prefer IPv4 over IPv6 to avoid ENETUNREACH on Render
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 const sendEmail = async ({ to, subject, html, text }) => {
   let transporter;
