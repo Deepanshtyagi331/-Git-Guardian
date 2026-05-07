@@ -28,10 +28,15 @@ const sendEmail = async ({ to, subject, html, text }) => {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      connectionTimeout: 20000,
-      greetingTimeout:   20000,
-      socketTimeout:     20000,
+      tls: {
+        rejectUnauthorized: false, // Bypass some network interference
+        minVersion: 'TLSv1.2'
+      },
+      connectionTimeout: 30000, // 30 seconds
+      greetingTimeout:   30000,
+      socketTimeout:     30000,
     });
+
 
 
 
