@@ -14,19 +14,25 @@ const sendEmail = async ({ to, subject, html, text }) => {
   console.log(`[Email Debug] Using SMTP_USER: ${process.env.SMTP_USER}`);
 
   if (process.env.SMTP_SERVICE === 'gmail' || (process.env.SMTP_USER && process.env.SMTP_USER.includes('gmail'))) {
-    console.log('[Email Debug] Config: Gmail Service (Auto-detecting ports)');
+    console.log('[Email Debug] Config: Gmail (Strict IPv4 Lookup, Port 587)');
 
     transporter = nodemailer.createTransport({
-      service: 'gmail',
-      family: 4,             // Force IPv4 to avoid ENETUNREACH
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      // Surgical fix: Force DNS to only return IPv4 addresses
+      lookup: (hostname, options, callback) => {
+        dns.lookup(hostname, { family: 4 }, callback);
+      },
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      connectionTimeout: 15000,
-      greetingTimeout:   15000,
-      socketTimeout:     15000,
+      connectionTimeout: 20000,
+      greetingTimeout:   20000,
+      socketTimeout:     20000,
     });
+
 
 
   } else if (process.env.SMTP_HOST) {
