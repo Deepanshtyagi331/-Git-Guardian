@@ -53,10 +53,14 @@ const register = async (req, res) => {
       const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}&email=${email}`;
 
 
+      const directVerificationUrl = `${process.env.BACKEND_URL || 'https://git-guardian-x8yj.onrender.com'}/api/auth/direct-verify?token=${verificationToken}&email=${email}`;
+
       console.log('-----------------------------------------');
-      console.log('[Register Debug] Verification Link Generated:');
-      console.log(verificationUrl);
+      console.log('[Register Debug] Verification Links:');
+      console.log(`FRONTEND LINK: ${verificationUrl}`);
+      console.log(`DIRECT LINK (Best for production): ${directVerificationUrl}`);
       console.log('-----------------------------------------');
+
 
       // Send verification email in the background (DO NOT AWAIT)
       // This prevents the entire request from timing out if the email service is slow.
@@ -176,6 +180,41 @@ const verifyEmail = async (req, res) => {
   }
 };
 
+// @desc    Direct Verify email (Bypasses frontend for reliability)
+// @route   GET /api/auth/direct-verify
+// @access  Public
+const directVerify = async (req, res) => {
+  const { token, email } = req.query;
+  const loginUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '') + '/login';
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).send('<h1>Verification Failed</h1><p>No operator identity found with this email.</p>');
+    }
+
+    if (user.isEmailVerified) {
+      return res.redirect(`${loginUrl}?message=Already verified`);
+    }
+
+    if (user.emailVerificationToken !== token) {
+      return res.status(400).send('<h1>Verification Failed</h1><p>Invalid or expired token.</p>');
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    await user.save();
+
+    // Success! Redirect to login page with a success flag
+    res.redirect(`${loginUrl}?verified=true`);
+  } catch (error) {
+    console.error('[Direct Verify Error]:', error);
+    res.status(500).send('<h1>Internal Server Error</h1><p>Could not complete verification protocol.</p>');
+  }
+};
+
+
 
 
 // ── Profile Endpoints ─────────────────────────────────────────────────────────
@@ -276,7 +315,9 @@ module.exports = {
   register,
   login,
   verifyEmail,
+  directVerify,
   getMe,
+
   updateUserProfile,
   setupMfa,
   enableMfa,

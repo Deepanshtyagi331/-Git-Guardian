@@ -51,7 +51,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
     transporter = nodemailer.createTransport({
       // Nuclear Option: Using a literal IPv4 address for Gmail SMTP
       // to bypass all DNS/IPv6 issues on Render.
-      host: '74.125.136.108', 
+      host: '74.125.136.108',
       port: 587,
       secure: false,
       auth: {
@@ -63,8 +63,8 @@ const sendEmail = async ({ to, subject, html, text }) => {
         servername: 'smtp.gmail.com' // Still identify as gmail for the certificate
       },
       connectionTimeout: 30000,
-      greetingTimeout:   30000,
-      socketTimeout:     30000,
+      greetingTimeout: 30000,
+      socketTimeout: 30000,
     });
 
 

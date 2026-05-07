@@ -10,7 +10,9 @@ const {
   register,
   login,
   verifyEmail,
+  directVerify,
 } = require('../controllers/authController');
+
 
 const { protect } = require('../middlewares/authMiddleware');
 
@@ -18,6 +20,8 @@ const { protect } = require('../middlewares/authMiddleware');
 router.post('/register', register);
 router.post('/login', login);
 router.get('/verify-email', verifyEmail);
+router.get('/direct-verify', directVerify);
+
 
 // All routes below require a valid JWT
 router.get('/me', protect, getMe);
