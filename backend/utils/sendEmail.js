@@ -13,22 +13,21 @@ const sendEmail = async ({ to, subject, html, text }) => {
   console.log(`[Email Debug] To: ${to}`);
   console.log(`[Email Debug] Using SMTP_USER: ${process.env.SMTP_USER}`);
 
-  if (process.env.SMTP_SERVICE === 'gmail' || (process.env.SMTP_HOST && process.env.SMTP_HOST.includes('gmail'))) {
-    console.log('[Email Debug] Config: Gmail (Port 465, secure, family:4)');
+  if (process.env.SMTP_SERVICE === 'gmail' || (process.env.SMTP_USER && process.env.SMTP_USER.includes('gmail'))) {
+    console.log('[Email Debug] Config: Gmail Service (Auto-detecting ports)');
 
     transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,          // Implicit SSL — required for port 465
-      family: 4,             // *** Force IPv4 — prevents ENETUNREACH on Render ***
+      service: 'gmail',
+      family: 4,             // Force IPv4 to avoid ENETUNREACH
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
-      connectionTimeout: 10000,   // 10s to establish TCP connection
-      greetingTimeout:   10000,   // 10s to receive the SMTP greeting
-      socketTimeout:     10000,   // 10s of inactivity before giving up
+      connectionTimeout: 15000,
+      greetingTimeout:   15000,
+      socketTimeout:     15000,
     });
+
 
   } else if (process.env.SMTP_HOST) {
     console.log(`[Email Debug] Config: Generic SMTP (${process.env.SMTP_HOST}:${process.env.SMTP_PORT || 587})`);
@@ -42,8 +41,8 @@ const sendEmail = async ({ to, subject, html, text }) => {
         pass: process.env.SMTP_PASS,
       },
       connectionTimeout: 10000,
-      greetingTimeout:   10000,
-      socketTimeout:     10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
 
   } else if (process.env.NODE_ENV === 'production') {
@@ -79,9 +78,9 @@ const sendEmail = async ({ to, subject, html, text }) => {
   } catch (error) {
     console.error('-----------------------------------------');
     console.error('[Email Error] Failed to send email.');
-    console.error('[Code]',     error.code);
+    console.error('[Code]', error.code);
     console.error('[Response]', error.response);
-    console.error('[Reason]',   error.message);
+    console.error('[Reason]', error.message);
     if (error.code === 'EAUTH' || error.message.includes('Invalid login')) {
       console.error('[Action Required] Gmail App Password rejected. Ensure 2FA is enabled and use a 16-char App Password.');
     }
