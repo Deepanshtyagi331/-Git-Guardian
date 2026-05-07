@@ -49,7 +49,9 @@ const register = async (req, res) => {
       });
 
       // Send verification email via Nodemailer
-      const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${verificationToken}&email=${email}`;
+      const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+      const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}&email=${email}`;
+
 
       console.log('-----------------------------------------');
       console.log('[Register Debug] Verification Link Generated:');
