@@ -56,8 +56,9 @@ const register = async (req, res) => {
       console.log(verificationUrl);
       console.log('-----------------------------------------');
 
-      await sendEmail({
-
+      // Send verification email in the background (DO NOT AWAIT)
+      // This prevents the entire request from timing out if the email service is slow.
+      sendEmail({
         to: email,
         subject: '🔐 Initialize Protocol: Verify Your Identity',
         html: `
@@ -75,11 +76,12 @@ const register = async (req, res) => {
             </div>
           </div>
         `
-      });
+      }).catch(err => console.error('[Background Email Error]:', err.message));
 
       res.status(201).json({
-        message: 'Registration successful. Verification protocol sent to email.',
+        message: 'Registration successful. Verification protocol initiated.',
       });
+
     }
   } catch (error) {
     console.error('[Register Error]:', error);
