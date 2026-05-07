@@ -17,25 +17,24 @@ const sendEmail = async ({ to, subject, html, text }) => {
     console.log('[Email Debug] Config: Gmail (Strict IPv4 Lookup, Port 587)');
 
     transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
+      // Nuclear Option: Using a literal IPv4 address for Gmail SMTP
+      // to bypass all DNS/IPv6 issues on Render.
+      host: '74.125.136.108', 
       port: 587,
       secure: false,
-      // Surgical fix: Force DNS to only return IPv4 addresses
-      lookup: (hostname, options, callback) => {
-        dns.lookup(hostname, { family: 4 }, callback);
-      },
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
       tls: {
-        rejectUnauthorized: false, // Bypass some network interference
-        minVersion: 'TLSv1.2'
+        rejectUnauthorized: false,
+        servername: 'smtp.gmail.com' // Still identify as gmail for the certificate
       },
-      connectionTimeout: 30000, // 30 seconds
+      connectionTimeout: 30000,
       greetingTimeout:   30000,
       socketTimeout:     30000,
     });
+
 
 
 
