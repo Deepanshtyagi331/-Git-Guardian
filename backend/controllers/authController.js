@@ -86,8 +86,8 @@ const register = async (req, res) => {
   } catch (error) {
     console.error('[Register Error]:', error);
     // Return specific error message for debugging production failures
-    res.status(500).json({ 
-      message: error.message || 'Identity establishment failed during registration protocol' 
+    res.status(500).json({
+      message: error.message || 'Identity establishment failed during registration protocol'
     });
   }
 
@@ -135,23 +135,29 @@ const login = async (req, res) => {
 // @access  Public
 const verifyEmail = async (req, res) => {
   const { token, email } = req.query;
+  console.log(`[Verify Debug] Attempting verification for: ${email}`);
+  console.log(`[Verify Debug] Token received: ${token}`);
 
   try {
     const user = await User.findOne({ email, emailVerificationToken: token });
 
     if (!user) {
+      console.log('[Verify Debug] FAILED: No matching user found with this token.');
       return res.status(400).json({ message: 'Invalid or expired verification token' });
     }
 
+    console.log('[Verify Debug] SUCCESS: User found. Updating status...');
     user.isEmailVerified = true;
     user.emailVerificationToken = undefined;
     await user.save();
 
-    res.json({ message: 'Identity verified successfully. You may now login.' });
+    res.json({ message: 'Email verified successfully. You can now login.' });
   } catch (error) {
-    res.status(500).json({ message: 'Verification protocol failure' });
+    console.error('[Verify Error]:', error);
+    res.status(500).json({ message: 'Error during email verification' });
   }
 };
+
 
 // ── Profile Endpoints ─────────────────────────────────────────────────────────
 
