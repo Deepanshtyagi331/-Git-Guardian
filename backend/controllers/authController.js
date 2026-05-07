@@ -137,28 +137,45 @@ const login = async (req, res) => {
 // @access  Public
 const verifyEmail = async (req, res) => {
   const { token, email } = req.query;
+  console.log(`-----------------------------------------`);
   console.log(`[Verify Debug] Attempting verification for: ${email}`);
   console.log(`[Verify Debug] Token received: ${token}`);
 
   try {
-    const user = await User.findOne({ email, emailVerificationToken: token });
+    const user = await User.findOne({ email });
 
     if (!user) {
-      console.log('[Verify Debug] FAILED: No matching user found with this token.');
-      return res.status(400).json({ message: 'Invalid or expired verification token' });
+      console.log('[Verify Debug] FAILED: No user found with this email.');
+      return res.status(404).json({ message: 'No operator identity found with this email.' });
     }
 
-    console.log('[Verify Debug] SUCCESS: User found. Updating status...');
+    // Shield: If already verified, don't show an error
+    if (user.isEmailVerified) {
+      console.log('[Verify Debug] ALREADY VERIFIED: User is already active.');
+      return res.json({ message: 'Identity already established. You can proceed to login.' });
+    }
+
+    // Check if token matches
+    if (user.emailVerificationToken !== token) {
+      console.log('[Verify Debug] FAILED: Token mismatch.');
+      return res.status(400).json({ message: 'Invalid or expired verification token.' });
+    }
+
+    console.log('[Verify Debug] SUCCESS: Token match. Activating operator...');
     user.isEmailVerified = true;
     user.emailVerificationToken = undefined;
     await user.save();
 
+    console.log(`[Verify Debug] COMPLETED: ${email} is now verified.`);
+    console.log(`-----------------------------------------`);
+
     res.json({ message: 'Email verified successfully. You can now login.' });
   } catch (error) {
     console.error('[Verify Error]:', error);
-    res.status(500).json({ message: 'Error during email verification' });
+    res.status(500).json({ message: 'Verification protocol failure' });
   }
 };
+
 
 
 // ── Profile Endpoints ─────────────────────────────────────────────────────────
