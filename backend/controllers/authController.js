@@ -83,8 +83,12 @@ const register = async (req, res) => {
     }
   } catch (error) {
     console.error('[Register Error]:', error);
-    res.status(500).json({ message: 'Internal Server Error during registration' });
+    // Return specific error message for debugging production failures
+    res.status(500).json({ 
+      message: error.message || 'Identity establishment failed during registration protocol' 
+    });
   }
+
 };
 
 // @desc    Login user
