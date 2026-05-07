@@ -49,17 +49,20 @@ const register = async (req, res) => {
       });
 
       // Send verification email via Nodemailer
-      const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+      const baseUrl = (process.env.FRONTEND_URL || 'https://git-guardian.vercel.app').replace(/\/+$/, '');
       const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}&email=${email}`;
 
-
-      const directVerificationUrl = `${process.env.BACKEND_URL || 'https://git-guardian-x8yj.onrender.com'}/api/auth/direct-verify?token=${verificationToken}&email=${email}`;
+      // Auto-detect backend host for the direct link
+      const host = req.get('host');
+      const protocol = (req.protocol === 'http' && host.includes('onrender')) ? 'https' : req.protocol;
+      const directVerificationUrl = `${protocol}://${host}/direct-verify?token=${verificationToken}&email=${email}`;
 
       console.log('-----------------------------------------');
-      console.log('[Register Debug] Verification Links:');
-      console.log(`FRONTEND LINK: ${verificationUrl}`);
-      console.log(`DIRECT LINK (Best for production): ${directVerificationUrl}`);
+      console.log('[Register Debug] Official Verification Links:');
+      console.log(`1. FRONTEND LINK: ${verificationUrl}`);
+      console.log(`2. DIRECT LINK:   ${directVerificationUrl}`);
       console.log('-----------------------------------------');
+
 
 
       // Send verification email in the background (DO NOT AWAIT)
