@@ -1,90 +1,52 @@
 import { createContext, useState, useEffect, useContext } from 'react';
-import { supabase } from '../services/supabase';
 import { login as apiLogin, register as apiRegister, logout as apiLogout, getMe } from '../services/api';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);     // Combined user object (Supabase + MongoDB profile)
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  /**
-   * Given a Supabase session, fetch the MongoDB profile from the backend
-   * and merge it with Supabase user data into one unified user object.
-   */
-  const loadProfile = async (supabaseUser) => {
-    if (!supabaseUser) {
+  const loadProfile = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
       setUser(null);
+      setLoading(false);
       return;
     }
 
     try {
-      const profile = await getMe(); // calls GET /api/auth/me (token is auto-attached)
-      setUser({
-        // Core identity from Supabase
-        id: supabaseUser.id,
-        email: supabaseUser.email,
-        // Profile from MongoDB
-        _id: profile._id,
-        name: profile.name || supabaseUser.user_metadata?.name || supabaseUser.email.split('@')[0],
-        isAdmin: profile.isAdmin || false,
-        mfaEnabled: profile.mfaEnabled || false,
-        githubUsername: profile.githubUsername,
-        autoScanEnabled: profile.autoScanEnabled,
-        autoScanInterval: profile.autoScanInterval,
-        createdAt: profile.createdAt,
-      });
+      const profile = await getMe();
+      setUser(profile);
     } catch (err) {
-      // Backend might be down or user not yet synced — use Supabase data as fallback
-      console.warn('[AuthContext] Could not load profile from backend:', err.message);
-      setUser({
-        id: supabaseUser.id,
-        email: supabaseUser.email,
-        name: supabaseUser.user_metadata?.name || supabaseUser.email.split('@')[0],
-        isAdmin: false,
-        mfaEnabled: false,
-      });
+      console.warn('[AuthContext] Could not load profile:', err.message);
+      localStorage.removeItem('token');
+      setUser(null);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Sync auth state with Supabase session on mount and across tabs
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        await loadProfile(session.user);
-      }
-      setLoading(false);
-    });
-
-    // Listen for sign-in / sign-out / token-refresh events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          await loadProfile(session.user);
-        } else {
-          setUser(null);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    loadProfile();
   }, []);
 
   const login = async (credentials) => {
-    const data = await apiLogin(credentials); // calls supabase.auth.signInWithPassword
+    const data = await apiLogin(credentials);
+    setUser(data);
     return data;
   };
 
   const register = async (userData) => {
-    const data = await apiRegister(userData); // calls supabase.auth.signUp
+    const data = await apiRegister(userData);
     return data;
   };
 
   const logout = async () => {
-    await apiLogout(); // calls supabase.auth.signOut
+    await apiLogout();
     setUser(null);
   };
+
 
   const updateUser = (data) => {
     setUser((prev) => ({ ...prev, ...data }));

@@ -1,47 +1,47 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '../services/supabase';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { verifyEmail as apiVerifyEmail } from '../services/api';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Activity, ArrowRight } from 'lucide-react';
 
 /**
- * VerifyEmail – handles the Supabase email confirmation redirect.
+ * VerifyEmail – handles the custom backend email confirmation.
  *
- * When a user clicks the verification link in their email, Supabase redirects
- * them to /verify-email with hash parameters containing the access token.
- * The Supabase JS client picks those up automatically on page load and
- * confirms the session.
+ * When a user clicks the verification link in their email, they are redirected
+ * to /verify-email?token=...&email=...
+ * We call the backend to confirm the token and then redirect to login.
  */
 const VerifyEmail = () => {
   const [status, setStatus] = useState('verifying');
   const [message, setMessage] = useState('');
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Listen for the auth event Supabase fires after processing the hash params
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          setStatus('success');
-          setMessage('Email successfully verified. You are now logged in.');
-          setTimeout(() => navigate('/'), 2500);
-        }
-      }
-    );
+    const token = searchParams.get('token');
+    const email = searchParams.get('email');
 
-    // Fallback: if no event fires within 5s, something went wrong
-    const timeout = setTimeout(() => {
-      if (status === 'verifying') {
+    if (!token || !email) {
+      setStatus('error');
+      setMessage('Invalid verification link. Missing token or email identity.');
+      return;
+    }
+
+    const verify = async () => {
+      try {
+        await apiVerifyEmail(token, email);
+        setStatus('success');
+        setMessage('Identity successfully verified. Your operator console is now active.');
+        setTimeout(() => navigate('/login'), 3000);
+      } catch (err) {
         setStatus('error');
-        setMessage('Verification timed out. The link may be invalid or expired.');
+        setMessage(err.response?.data?.message || 'Verification protocol failed. Link may be expired.');
       }
-    }, 5000);
-
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(timeout);
     };
-  }, [navigate, status]);
+
+    verify();
+  }, [navigate, searchParams]);
+
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center py-12 px-4 relative overflow-hidden font-sans">

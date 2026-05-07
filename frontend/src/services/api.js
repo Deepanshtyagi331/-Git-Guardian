@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { supabase } from './supabase';
 
 // Robust API URL construction
 const rawEnvUrl = import.meta.env.VITE_API_URL;
@@ -26,12 +25,12 @@ const api = axios.create({
   timeout: 120000,
 });
 
-// Attach Supabase session token to every request
+// Attach custom JWT session token to every request
 api.interceptors.request.use(
   async (config) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      config.headers.Authorization = `Bearer ${session.access_token}`;
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -53,30 +52,30 @@ api.interceptors.response.use(
   }
 );
 
-// ── Auth (delegated to Supabase) ──────────────────────────────────────────────
+// ── Auth (Custom Backend) ─────────────────────────────────────────────────────
 
-export const login = async ({ email, password }) => {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(error.message);
-  return data; // { user, session }
+export const login = async (credentials) => {
+  const response = await api.post('auth/login', credentials);
+  if (response.data.token) {
+    localStorage.setItem('token', response.data.token);
+  }
+  return response.data;
 };
 
-export const register = async ({ name, email, password }) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { name },
-      emailRedirectTo: `${window.location.origin}/verify-email`,
-    },
-  });
-  if (error) throw new Error(error.message);
-  return data;
+export const register = async (userData) => {
+  const response = await api.post('auth/register', userData);
+  return response.data;
+};
+
+export const verifyEmail = async (token, email) => {
+  const response = await api.get(`auth/verify-email?token=${token}&email=${email}`);
+  return response.data;
 };
 
 export const logout = async () => {
-  await supabase.auth.signOut();
+  localStorage.removeItem('token');
 };
+
 
 // ── Profile ───────────────────────────────────────────────────────────────────
 

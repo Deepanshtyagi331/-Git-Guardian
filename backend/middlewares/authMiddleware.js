@@ -1,49 +1,37 @@
-const supabaseAdmin = require('../utils/supabaseAdmin');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 /**
- * protect – verifies a Supabase JWT from the Authorization header.
- * Attaches req.supabaseUser (raw Supabase user) and req.user (MongoDB profile).
+ * protect – verifies a custom JWT from the Authorization header.
+ * Attaches req.user (MongoDB profile).
  */
 const protect = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  let token;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Not authorized, no token' });
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      // Get token from header
+      token = req.headers.authorization.split(' ')[1];
+
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_jwt_key');
+
+      // Get user from the token
+      req.user = await User.findById(decoded.id).select('-password');
+
+      if (!req.user) {
+        return res.status(401).json({ message: 'Not authorized, user not found' });
+      }
+
+      next();
+    } catch (error) {
+      console.error('[AuthMiddleware] JWT Error:', error.message);
+      res.status(401).json({ message: 'Not authorized, token failed' });
+    }
   }
 
-  const token = authHeader.split(' ')[1];
-
-  try {
-    // Verify the JWT with Supabase
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-
-    if (error || !user) {
-      return res.status(401).json({ message: 'Not authorized, invalid token' });
-    }
-
-    req.supabaseUser = user;
-
-    // Load (or lazily create) the MongoDB profile for this Supabase user
-    let mongoUser = await User.findOne({ supabaseId: user.id }).select('-password');
-
-    if (!mongoUser) {
-      // First time: bootstrap the profile from Supabase data
-      mongoUser = await User.create({
-        supabaseId: user.id,
-        name: user.user_metadata?.name || user.email.split('@')[0],
-        email: user.email,
-        // password field is no longer needed, set a placeholder so validation passes
-        password: 'supabase-managed',
-        isEmailVerified: !!user.email_confirmed_at,
-      });
-    }
-
-    req.user = mongoUser;
-    next();
-  } catch (err) {
-    console.error('[AuthMiddleware] Error:', err.message);
-    return res.status(401).json({ message: 'Not authorized' });
+  if (!token) {
+    res.status(401).json({ message: 'Not authorized, no token' });
   }
 };
 
@@ -56,3 +44,4 @@ const admin = (req, res, next) => {
 };
 
 module.exports = { protect, admin };
+

@@ -7,11 +7,22 @@ const {
   enableMfa,
   disableMfa,
   verifyMfaLogin,
+  register,
+  login,
+  verifyEmail,
 } = require('../controllers/authController');
+
 const { protect } = require('../middlewares/authMiddleware');
 
-// All routes below require a valid Supabase JWT
+// Public routes
+router.post('/register', register);
+router.post('/login', login);
+router.get('/verify-email', verifyEmail);
+
+// All routes below require a valid JWT
 router.get('/me', protect, getMe);
+
+
 router.put('/profile', protect, updateUserProfile);
 
 // MFA (TOTP) management
