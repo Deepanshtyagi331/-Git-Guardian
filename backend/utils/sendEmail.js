@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const axios = require('axios');
 const dns = require('dns');
 
 // Force Node.js to prefer IPv4 over IPv6 globally to avoid ENETUNREACH on Render
@@ -7,7 +8,38 @@ if (dns.setDefaultResultOrder) {
 }
 
 const sendEmail = async ({ to, subject, html, text }) => {
+  // --- PRIORITIZE RESEND API (Option B) ---
+  if (process.env.RESEND_API_KEY) {
+    console.log('[Email Debug] Using Resend API (HTTPS Protocol)...');
+    try {
+      const response = await axios.post(
+        'https://api.resend.com/emails',
+        {
+          // Note: If you haven't verified a domain on Resend, 
+          // you MUST use "onboarding@resend.dev" as the sender.
+          from: 'Git Guardian <onboarding@resend.dev>',
+          to: [to],
+          subject: subject,
+          html: html,
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      console.log(`[Email] Success via Resend! ID: ${response.data.id}`);
+      return response.data;
+    } catch (error) {
+      console.error('[Email Error] Resend API failed, falling back to SMTP...', error.response?.data || error.message);
+      // If Resend fails, we continue to the Nodemailer fallback below
+    }
+  }
+
+  // --- FALLBACK TO NODEMAILER (Option A) ---
   let transporter;
+
 
   console.log(`[Email Debug] Starting sendEmail process...`);
   console.log(`[Email Debug] To: ${to}`);
